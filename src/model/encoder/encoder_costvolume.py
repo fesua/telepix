@@ -192,7 +192,6 @@ class EncoderCostVolume(Encoder[EncoderCostVolumeCfg]):
         xy_ray, _ = sample_image_grid((h, w), device)
         xy_ray = rearrange(xy_ray, "h w xy -> (h w) () xy")
         gaussians = rearrange(raw_gaussians,"... (srf c) -> ... srf c",srf=self.cfg.num_surfaces,)
-        pixel_size = 1 / torch.tensor((w - 1, h - 1), dtype=torch.float32, device=device)
         gpp = self.cfg.gaussians_per_pixel
         gaussians = self.gaussian_adapter.forward(
             context,
