@@ -51,7 +51,7 @@ CUDA_VISIBLE_DEVICES=0 python -m src.main +experiment=re10k checkpointing.load=P
 SkySplat relies on RPC camera models for satellite image geometry.
 To convert RPC imagery into pinhole-style camera representations, we follow the pipeline from:
 
-## 👉 https://github.com/Kai-46/SatelliteSfM
+👉 https://github.com/Kai-46/SatelliteSfM
 
 This process generates:
 
