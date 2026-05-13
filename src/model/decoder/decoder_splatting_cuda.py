@@ -12,13 +12,6 @@ from .cuda_splatting import DepthRenderingMode, render_cuda, render_depth_cuda
 from .decoder import Decoder, DecoderOutput
 import torch.nn as nn
 
-def downsample_features(feats, out_size=64):
-    V, N, C = feats.shape
-    H = W = int(N ** 0.5)  # 256
-    feats = feats.view(V, H, W, C).permute(0, 3, 1, 2)  # [B*V, C, H, W]
-    feats_down = F.interpolate(feats, size=(out_size, out_size), mode='bilinear', align_corners=True)
-    feats_down = feats_down.permute(0, 2, 3, 1).reshape(V, out_size * out_size, C)
-    return feats_down
 
 @dataclass
 class DecoderSplattingCUDACfg:
@@ -40,22 +33,6 @@ class DecoderSplattingCUDA(Decoder[DecoderSplattingCUDACfg]):
             persistent=False,
         )
 
-        # feats_MLP: 64 + 1024 + 64 -> 512 -> 64
-        feats_channels = 1024
-        mid_channels = 512
-        feats_dim = 64
-        self.feats_MLP = nn.Sequential(
-            nn.Linear(feats_channels, mid_channels),
-            nn.GELU(),
-            nn.Linear(mid_channels, feats_dim)
-        )
-        # SAM_MLP:  64 + -> 512 -> 1024
-        in_dim, sam_dim = 64, 1024
-        self.SAM_MLP = nn.Sequential(
-            nn.Linear(in_dim, mid_channels),
-            nn.GELU(),
-            nn.Linear(mid_channels, sam_dim)
-        )
     def forward(
         self,
         gaussians,
