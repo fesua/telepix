@@ -13,9 +13,12 @@ Thank you for your attention to and interest in the **SkySplat** series of paper
 SkySplat addresses the challenges of multi-temporal sparse-view satellite reconstruction by integrating the RPC camera model into a generalizable 3D Gaussian Splatting pipeline.
 
 <p align="center"> <img src="paper/fig1.jpg" width="70%" alt="Algorithm Overview"> </p>
-RPC-aware generalizable 3D Gaussian Splatting, enabling effective geometric reasoning for satellite imagery
-Self-supervised learning with radiometric-robust relative height supervision, without requiring ground-truth DSMs
-Efficient reconstruction, achieving up to 86× speedup over per-scene optimization methods such as EOGS
+
+- **RPC-based generalizable 3D Gaussian Splatting**, enabling effective geometric reasoning for satellite imagery
+- **Self-supervised learning** with radiometric-robust relative height supervision, without requiring ground-truth labels
+- **Efficient reconstruction**, achieving up to 86× speedup over per-scene optimization methods such as EOGS
+
+<p align="center"> <img src="paper/fig2.jpg" width="70%" alt="Algorithm Overview"> </p>
 
 SkySplat consistently outperforms existing generalizable 3DGS baselines, reducing MAE from 13.18 m to 1.80 m on DFC19, and demonstrating strong cross-dataset generalization on MVS3D.
 
