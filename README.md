@@ -28,23 +28,30 @@ SkySplat addresses multi-temporal sparse-view satellite reconstruction by integr
 - **Strong generalization**: consistent performance on MVS3D benchmark
 
 ## ⚙️ Setup
-Before training, modify the dataset path in: config/experiment/re10k.yaml
+Before training, modify the dataset path in:
+```
+config/experiment/re10k.yaml
+```
 
 Then update:
+```
 dataset:
   roots: /path/to/your/dataset
-  
+```
+
 ## 🏋️ Training
 
 Run training with:
-
+```
 CUDA_VISIBLE_DEVICES=0 python -m src.main +experiment=re10k data_loader.train.batch_size=1
+```
 
 ## 🚀 Inference
 
 Run evaluation on a trained checkpoint:
-
+```
 CUDA_VISIBLE_DEVICES=0 python -m src.main +experiment=re10k checkpointing.load=Path_ckpt mode=test
+```
 
 ## 🛰️ RPC camera models Processing (Important)
 
