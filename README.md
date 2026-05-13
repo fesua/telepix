@@ -14,9 +14,9 @@ SkySplat addresses multi-temporal sparse-view satellite reconstruction by integr
 <p align="center"> <img src="paper/fig2.jpg" width="100%" alt="Overview"> </p>
 
 ## 🚀 Key Features
-RPC-aware 3D Gaussian Splatting for satellite-specific geometric modeling
-Self-supervised training with radiometric-robust relative height supervision (no ground-truth DSM required)
-Efficient inference, achieving up to 86× speedup over per-scene optimization methods (e.g., EOGS)
+- **RPC-aware 3D Gaussian Splatting** for satellite-specific geometric modeling
+- **Self-supervised learning** with radiometric-robust relative height supervision (no ground-truth labels required)
+- **Efficient inference**, achieving up to 86× speedup over per-scene optimization methods (e.g., EOGS)
 
 ## 📊 Results
 <p align="center"> <img src="paper/fig1.jpg" width="100%" alt="Results"> </p>
