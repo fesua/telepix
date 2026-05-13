@@ -70,10 +70,32 @@ dataset/
 
 These camera files are required for training and inference.
 
-
 ## 📐 Optional: Depth Projection
 
 If depth maps need to be generated from height maps, projection can be performed using camera geometry from the RPC-to-pinhole conversion step.
+
+
+## 📁 Dataset
+
+SkySplat is trained exclusively on the public US3D dataset, including the following subsets:
+```
+JAX-Extra, JAX-Train, JAX-Val
+OMA-Extra, OMA-Train, OMA-Val
+```
+The dataset is publicly available at:
+
+👉 https://ieee-dataport.org/open-access/urban-semantic-3d-dataset
+
+
+## 📝 TODO
+
+In the coming period, we plan to release the following resources to facilitate easier testing and debugging of SkySplat:
+- **768×768 image examples derived from Sat-NeRF data.**
+  We will open-source a subset of satellite images **originally provided by Sat-NeRF**, which are **reprocessed and resized to 768×768 resolution by us**, to offer a standardized input format for quick experiments.
+- **A sample pretrained checkpoint.**
+  We will release an example pretrained weight to allow users to directly run inference, verify the pipeline, and debug the code without training from scratch.
+
+These resources are intended to lower the entry barrier for reproduction and practical use of SkySplat.
 
 ## 🙏 Acknowledgement
 We acknowledge that this work is built upon and benefits from the following open-source projects:
