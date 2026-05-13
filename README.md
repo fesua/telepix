@@ -75,6 +75,13 @@ These camera files are required for training and inference.
 
 If depth maps need to be generated from height maps, projection can be performed using camera geometry from the RPC-to-pinhole conversion step.
 
+## 🙏 Acknowledgement
+We acknowledge that this work is built upon and benefits from the following open-source projects:
+
+- [MVSplat](https://github.com/donydchen/mvsplat)  
+- [SatMVS](https://github.com/WHU-GPCV/SatMVS)
+
+We thank the authors for their contributions to the community.
 
 ## 💳 Citation
 
