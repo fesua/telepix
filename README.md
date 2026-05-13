@@ -1,4 +1,4 @@
-# SkySplat
+# SkySplat: Generalizable 3D Gaussian Splatting from Multi-Temporal Sparse Satellite Images
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
