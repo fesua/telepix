@@ -27,6 +27,50 @@ SkySplat addresses multi-temporal sparse-view satellite reconstruction by integr
 
 - **Strong generalization**: consistent performance on MVS3D benchmark
 
+## ⚙️ Setup
+1. Dataset configuration
+
+Before training, modify the dataset path in:
+
+config/experiment/re10k.yaml
+
+Update:
+
+dataset:
+  roots: /path/to/your/dataset
+  
+## 🏋️ Training
+
+Run training with:
+
+CUDA_VISIBLE_DEVICES=0 python -m src.main +experiment=re10k data_loader.train.batch_size=1
+
+## 🚀 Inference / Testing
+
+Run evaluation on a trained checkpoint:
+
+CUDA_VISIBLE_DEVICES=0 python -m src.main +experiment=re10k checkpointing.load=Path_ckpt mode=test
+🛰️ RPC Camera Processing (Important)
+
+SkySplat relies on RPC camera models for satellite image geometry.
+
+To convert RPC imagery into pinhole-style camera representations, we follow the pipeline from:
+
+👉 https://github.com/Kai-46/SatelliteSfM
+
+This process generates:
+
+dataset/
+├── cameras/
+├── cameras_others/
+
+These camera files are required for training and inference.
+
+## 📐 Optional: Depth Projection
+
+If depth maps need to be generated from height maps, projection can be performed using camera geometry from the RPC-to-pinhole conversion step.
+
+
 ## 💳 Citation
 
 If your work uses all or part of this code, please cite:
