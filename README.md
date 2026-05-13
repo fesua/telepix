@@ -30,12 +30,9 @@ SkySplat addresses multi-temporal sparse-view satellite reconstruction by integr
 ## ⚙️ Setup
 1. Dataset configuration
 
-Before training, modify the dataset path in:
+Before training, modify the dataset path in: config/experiment/re10k.yaml
 
-config/experiment/re10k.yaml
-
-Update:
-
+Then update:
 dataset:
   roots: /path/to/your/dataset
   
