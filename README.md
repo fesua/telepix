@@ -20,8 +20,9 @@ SkySplat addresses multi-temporal sparse-view satellite reconstruction by integr
 
 ## 📊 Results
 <p align="center"> <img src="paper/fig1.jpg" width="100%" alt="Results"> </p>
--DFC19: MAE reduced from 13.18 m → 1.80 m
--Strong generalization: consistent performance on MVS3D benchmark
+DFC19: MAE reduced from 13.18 m → 1.80 m.
+
+Strong generalization: consistent performance on MVS3D benchmark
 
 ## 💳 Citation
 
