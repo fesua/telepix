@@ -8,7 +8,6 @@ import numpy as np
 from ..backbone.unimatch.geometry import coords_grid
 from .ldm_unet.unet import UNetModel
 from .warping import RPC_Photo2Obj,RPC_Obj2Photo
-from simfeatup_dev.upsamplers import get_upsampler
 from torchvision import transforms
 from .red_regularization import RED_Regularization
 
