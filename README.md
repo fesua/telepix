@@ -46,20 +46,23 @@ Run evaluation on a trained checkpoint:
 
 CUDA_VISIBLE_DEVICES=0 python -m src.main +experiment=re10k checkpointing.load=Path_ckpt mode=test
 
-## 🛰️ RPC Camera Processing (Important)
+## 🛰️ RPC camera models Processing (Important)
 
 SkySplat relies on RPC camera models for satellite image geometry.
-To convert RPC imagery into pinhole-style camera representations, we follow the pipeline from:
+To convert RPC imagery into pinhole-hole camera representations, we follow the pipeline from:
 
 👉 https://github.com/Kai-46/SatelliteSfM
 
 This process generates:
 
+```
 dataset/
 ├── cameras/
 ├── cameras_others/
+```
 
 These camera files are required for training and inference.
+
 
 ## 📐 Optional: Depth Projection
 
