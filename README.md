@@ -7,18 +7,18 @@
 This repository provides the implementation of SkySplat, a 3D Gaussian Splatting framework for sparse-view satellite image reconstruction.
 SkySplat has been accepted by AAAI 2026.
 
-✨ Overview
+## ✨ Overview
 
 SkySplat addresses multi-temporal sparse-view satellite reconstruction by integrating the RPC camera model into a generalizable 3D Gaussian Splatting pipeline.
 
 <p align="center"> <img src="paper/fig2.jpg" width="70%" alt="Overview"> </p>
 
-🚀 Key Features
+## 🚀 Key Features
 RPC-aware 3D Gaussian Splatting for satellite-specific geometric modeling
 Self-supervised training with radiometric-robust relative height supervision (no ground-truth DSM required)
 Efficient inference, achieving up to 86× speedup over per-scene optimization methods (e.g., EOGS)
 
-📊 Results
+## 📊 Results
 <p align="center"> <img src="paper/fig1.jpg" width="70%" alt="Results"> </p>
 DFC19: MAE reduced from 13.18 m → 1.80 m
 Strong generalization: consistent performance on MVS3D benchmark
