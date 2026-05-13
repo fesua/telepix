@@ -28,8 +28,6 @@ SkySplat addresses multi-temporal sparse-view satellite reconstruction by integr
 - **Strong generalization**: consistent performance on MVS3D benchmark
 
 ## ⚙️ Setup
-1. Dataset configuration
-
 Before training, modify the dataset path in: config/experiment/re10k.yaml
 
 Then update:
