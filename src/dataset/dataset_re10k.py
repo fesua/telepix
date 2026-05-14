@@ -179,8 +179,6 @@ class DatasetRE10k(Dataset):
     def data_stage(self) -> Stage:
         if self.cfg.overfit_to_scene is not None:
             return "test"
-        if self.stage == "val":
-            return "test"
         return self.stage
 
     @cached_property
