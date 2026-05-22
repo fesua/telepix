@@ -53,6 +53,32 @@ Run evaluation on a trained checkpoint:
 CUDA_VISIBLE_DEVICES=0 python -m src.main +experiment=re10k checkpointing.load=Path_ckpt mode=test
 ```
 
+## 📁 Dataset
+
+SkySplat is trained exclusively on the public US3D dataset, including the following subsets:
+```
+JAX-Extra, JAX-Train, JAX-Val
+OMA-Extra, OMA-Train, OMA-Val
+```
+The dataset is publicly available at:
+
+👉 https://ieee-dataport.org/open-access/urban-semantic-3d-dataset
+
+## 🛠️ Dataset Preparation (CreateDataset)
+
+SkySplat provides an official dataset preparation script under:
+
+SkySplat-main/CreateDataset
+
+The pipeline (adapted from SatelliteSfM) crops 2048×2048 multi-view satellite tiles into 256×256 samples and generates image/, height/, rpc/, cameras/, and cameras_others/, which are directly compatible with SkySplat.
+```
+Example
+python satellite_sfm_crop2048to256.py \
+  --input_folder ./CreatDataset/example/input2048 \
+  --output_folder ./CreatDataset/example/output256
+```
+For detailed usage and examples, please refer to SkySplat-main/CreateDataset/README.md.
+
 ## 🛰️ RPC camera models Processing (Important)
 
 SkySplat relies on RPC camera models for satellite image geometry.
@@ -75,26 +101,13 @@ These camera files are required for training and inference.
 If depth maps need to be generated from height maps, projection can be performed using camera geometry from the RPC-to-pinhole conversion step.
 
 
-## 📁 Dataset
-
-SkySplat is trained exclusively on the public US3D dataset, including the following subsets:
-```
-JAX-Extra, JAX-Train, JAX-Val
-OMA-Extra, OMA-Train, OMA-Val
-```
-The dataset is publicly available at:
-
-👉 https://ieee-dataport.org/open-access/urban-semantic-3d-dataset
-
-
 ## 📝 TODO
-
 In the coming period, we plan to release the following resources to facilitate easier testing and debugging of SkySplat:
-- **768×768 image examples derived from Sat-NeRF data.**
-  We will open-source a subset of satellite images **originally provided by Sat-NeRF**, which are **reprocessed and resized to 768×768 resolution by us**, to offer a standardized input format for quick experiments.
-- **A sample pretrained checkpoint.**
-  We will release an example pretrained weight to allow users to directly run inference, verify the pipeline, and debug the code without training from scratch.
+- ✅ **Dataset generation code with a sample dataset.**  
+  We have released the official dataset preparation scripts along with one example dataset to help users understand the data format and generation process.
 
+- **A sample pretrained checkpoint.**  
+  We will release an example pretrained weight to allow users to directly run inference, verify the pipeline, and debug the code without training from scratch.
 These resources are intended to lower the entry barrier for reproduction and practical use of SkySplat.
 
 ## 🙏 Acknowledgement
