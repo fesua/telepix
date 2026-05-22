@@ -5,8 +5,10 @@ __pycache__/
 .DS_Store
 
 outputs/
-example/output256/*
+example/output256/**
+!example/output256/**/
 !example/output256/.gitkeep
+!example/output256/**/.gitkeep
 debug_sfm/
 colmap_triangulate/
 colmap_triangulate_postba/
