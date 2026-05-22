@@ -100,15 +100,10 @@ These camera files are required for training and inference.
 
 If depth maps need to be generated from height maps, projection can be performed using camera geometry from the RPC-to-pinhole conversion step.
 
-
 ## 📝 TODO
 In the coming period, we plan to release the following resources to facilitate easier testing and debugging of SkySplat:
 - ✅ **Dataset generation code with a sample dataset.**  
   We have released the official dataset preparation scripts along with one example dataset to help users understand the data format and generation process.
-
-- **A sample pretrained checkpoint.**  
-  We will release an example pretrained weight to allow users to directly run inference, verify the pipeline, and debug the code without training from scratch.
-These resources are intended to lower the entry barrier for reproduction and practical use of SkySplat.
 
 ## 🙏 Acknowledgement
 We acknowledge that this work is built upon and benefits from the following open-source projects:
