@@ -70,7 +70,7 @@ SkySplat provides an official dataset preparation script under:
 ```
 SkySplat-main/CreateDataset
 ```
-The pipeline (adapted from SatelliteSfM) crops 2048×2048 multi-view satellite tiles into 256×256 samples and generates image/, height/, rpc/, cameras/, and cameras_others/, which are directly compatible with SkySplat.
+The pipeline (adapted from SatelliteSfM) crops 2048×2048 multi-view satellite tiles into 256×256 samples and generates ```image/, height/, rpc/, cameras/, and cameras_others/```, which are directly compatible with SkySplat.
 ```
 Example
 python satellite_sfm_crop2048to256.py \
