@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.db
+.idea/workspace.xml
+.DS_Store
+
+outputs/
+example/output256/
+debug_sfm/
+colmap_triangulate/
+colmap_triangulate_postba/
+preprocess_sfm/ColmapForVisSat/build/
+preprocess_sfm/ColmapForVisSat/build_log.txt
