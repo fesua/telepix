@@ -144,7 +144,7 @@ class DatasetRE10k(Dataset):
             tile_prefix = "_".join(parts[:3])  # JAX_Tile_033
             crop_suffix = "crop_" + parts[-1]  # crop_0.tif
             base_dir = Path(ref_filename).parent.parent
-            for idx in [3]:
+            for idx in [3,4]:
                 view_dir = base_dir / str(idx)
                 tif_files = sorted(view_dir.glob("*.tif"))
                 matched = [str(f) for f in tif_files if tile_prefix in f.name and crop_suffix in f.name]
