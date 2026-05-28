@@ -4,8 +4,9 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![GitHub stars](https://img.shields.io/github/stars/<用户名>/<仓库名>?style=social)
 
+SkySplat GitHub repository is the official implementation of the AAAI 2026 paper “SkySplat”.
 This repository provides the implementation of SkySplat, a 3D Gaussian Splatting framework for sparse-view satellite image reconstruction.
-SkySplat has been accepted by AAAI 2026.
+
 
 ## ✨ Overview
 
