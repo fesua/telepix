@@ -54,7 +54,19 @@ class TrajectoryFn(Protocol):
     ]:
         pass
 
-
+def to_json_serializable(value):
+    if isinstance(value, torch.Tensor):
+        return to_json_serializable(value.detach().cpu())
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, dict):
+        return {k: to_json_serializable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [to_json_serializable(v) for v in value]
+    return value
+    
 class ModelWrapper(LightningModule):
     logger: Optional[WandbLogger]
     encoder: nn.Module
@@ -206,6 +218,7 @@ class ModelWrapper(LightningModule):
             self.benchmarker.dump(out_dir / "benchmark.json")
 
             for metric_name, metric_scores in self.test_step_outputs.items():
+                metric_scores = to_json_serializable(metric_scores)
                 avg_scores = sum(metric_scores) / len(metric_scores)
                 saved_scores[metric_name] = avg_scores
                 print(metric_name, avg_scores)
@@ -215,12 +228,13 @@ class ModelWrapper(LightningModule):
 
             for tag, times in self.benchmarker.execution_times.items():
                 times = times[int(self.time_skip_steps_dict[tag]) :]
-                saved_scores[tag] = [len(times), np.mean(times)]
-                print(f"{tag}: {len(times)} calls, avg. {np.mean(times)} seconds per call")
+                avg_time = float(np.mean(times))
+                saved_scores[tag] = [len(times), avg_time]
+                print(f"{tag}: {len(times)} calls, avg. {avg_time} seconds per call")
                 self.time_skip_steps_dict[tag] = 0
 
             with (out_dir / f"scores_all_avg.json").open("w") as f:
-                json.dump(saved_scores, f)
+                json.dump(to_json_serializable(saved_scores), f)
             self.benchmarker.clear_history()
         else:
             self.benchmarker.dump(self.test_cfg.output_path / name / "benchmark.json")
