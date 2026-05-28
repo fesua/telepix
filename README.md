@@ -5,7 +5,6 @@
 ![GitHub stars](https://img.shields.io/github/stars/<用户名>/<仓库名>?style=social)
 
 SkySplat GitHub repository is the official implementation of the AAAI 2026 paper “SkySplat”.
-
 It is a 3D Gaussian Splatting framework for sparse-view satellite image reconstruction from multi-temporal remote sensing imagery.
 
 
