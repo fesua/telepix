@@ -54,6 +54,16 @@ Run evaluation on a trained checkpoint:
 CUDA_VISIBLE_DEVICES=0 python -m src.main +experiment=re10k checkpointing.load=Path_ckpt mode=test
 ```
 
+
+## 🔥 Pretrained Baseline Checkpoint
+
+We have released the baseline pretrained weights for SkySplat:
+```
+./checkpoints/SkySplat_baseline.ckpt
+```
+Please note that this checkpoint is retrained on an optimized version of the dataset. We recommend using this model as a standard baseline for benchmarking and reproduction, as it is also adopted as the baseline in our subsequent work for consistency.
+
+
 ## 📁 Dataset
 
 SkySplat is trained exclusively on the public US3D dataset, including the following subsets:
