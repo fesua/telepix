@@ -48,7 +48,7 @@ checkpointing:
   filename: best_model
   pretrained_model: null
   resume: false
-
+  load: null
 
 train:
   depth_mode: null
