@@ -70,8 +70,8 @@ class DatasetRE10k(Dataset):
         filename, cam2img, cam2enu, enu2latlon = [], [], [], []
         hei_min_max, rpc_proj_matrices = [], []
         # The random view selection strategy should be used. Just an example.
-        JAX_index = ["RGB_001", "RGB_002", "RGB_003"]
-        OMA_index = ["RGB_001", "RGB_002", "RGB_003"]
+        JAX_index = ["RGB_001", "RGB_002", "RGB_003", "RGB_004", "RGB_005"]
+        OMA_index = ["RGB_001", "RGB_002", "RGB_003", "RGB_004", "RGB_005"]
         ref_filename = str(chunk_path)
         for index_view in range(self.num_views):
             if "JAX" in ref_filename:
@@ -93,8 +93,11 @@ class DatasetRE10k(Dataset):
             latlon = np.array(json.load(open(per_lat0lon0_path))).astype(np.float32)
 
             per_hei_min_max_path = (per_filename_path.replace("/image/", "/height/").replace("_RGB_", "_XYZ_").replace(".tif", "_height_minmax.json"))
-            hm_dict = json.load(open(per_hei_min_max_path))
-            hm = np.array([hm_dict["min_height"], hm_dict["max_height"]]).astype(np.float32)
+            if os.path.exists(per_hei_min_max_path):
+                hm_dict = json.load(open(per_hei_min_max_path))
+                hm = np.array([hm_dict["min_height"], hm_dict["max_height"]]).astype(np.float32)
+            else:
+                hm = np.array([25.0, 600.0], dtype=np.float32)
 
 
             filename.append(per_filename_path)
@@ -120,14 +123,22 @@ class DatasetRE10k(Dataset):
         # print(filename)
         # load Sgt height
         SAM_feats_list, gt_height_list, height_DAM3_list = [], [], []
+        h, w = results["context"]["image"].shape[2:]
+        zeros_hw = torch.zeros((h, w), dtype=torch.float32)
         for fn in filename:
             # gt height
             path = fn.replace("/image/", "/height/").replace("_RGB_", "_XYZ_")
-            gt = torch.from_numpy(tifffile.imread(path)).float()
+            if os.path.exists(path):
+                gt = torch.from_numpy(tifffile.imread(path)).float()
+            else:
+                gt = zeros_hw.clone()
             gt_height_list.append(gt)
             # height_DAM3
             path = fn.replace("/image/", "/height_DAM3/").replace("_RGB_", "_XYZ_")
-            height_DAM3 = torch.from_numpy(tifffile.imread(path)).float()
+            if os.path.exists(path):
+                height_DAM3 = torch.from_numpy(tifffile.imread(path)).float()
+            else:
+                height_DAM3 = zeros_hw.clone()
             height_DAM3_list.append(height_DAM3)
 
         results["context"]["gt_height"]  =  np.stack(gt_height_list)
@@ -144,11 +155,16 @@ class DatasetRE10k(Dataset):
             tile_prefix = "_".join(parts[:3])  # JAX_Tile_033
             crop_suffix = "crop_" + parts[-1]  # crop_0.tif
             base_dir = Path(ref_filename).parent.parent
-            for idx in [3,4]:
+            # Render at every view slot where this crop exists. Missing target tifs are skipped
+            # so we don't lose the whole chunk just because a held-out view doesn't see this patch.
+            for idx in [0, 1, 2, 3, 4]:
                 view_dir = base_dir / str(idx)
+                if not view_dir.exists():
+                    continue
                 tif_files = sorted(view_dir.glob("*.tif"))
                 matched = [str(f) for f in tif_files if tile_prefix in f.name and crop_suffix in f.name]
-                target_filename.append(matched[0])
+                if matched:
+                    target_filename.append(matched[0])
             target_cam2img, target_cam2enu = [], []
             target_imgs = []
             for fn in target_filename:

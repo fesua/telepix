@@ -1,3 +1,54 @@
+# Telepix — SkySplat on Planet SkySat (2026-06)
+
+원본 SkySplat (AAAI 2026) 위에서 **Planet SkySat 2020/2021/2022 잠실 일대 5장**으로 inference 파이프라인을 구축한 fork입니다. 자세한 작업 로그는 `CLAUDE.md` 참고.
+
+## 핵심 변경
+
+- `CreatDataset/satellite_sfm_crop2048to256.py` — per-view error isolation, alt_minmax 확장, Newton-based inverse RPC, 5-view 지원
+- `src/dataset/dataset_re10k.py` — JAX/OMA index 5-view 확장, height_minmax/DAM3/gt_height fallback, target loop graceful skip, all-5-target rendering
+- `src/model/model_wrapper.py` — predicted height map (PNG + .npy + JSON) 저장, Gaussian tensor (.npz) 덤프, per-target render naming fix
+- `config/experiment/re10k.yaml` — `dataset.roots` 경로 수정
+
+## scripts/ — Planet 파이프라인 드라이버
+
+| script | 역할 |
+|---|---|
+| `convert_planet.py` | Planet 4-band UInt16 TIF → SkySplat 호환 input2048 (RGB uint8 + RPC embed) |
+| `convert_planet_histmatch_tif.py` | 위 + 0010 reference에 histogram matching (UInt16 단계) |
+| `histmatch_crops_tensor.py` | 256×256 crop 단계에서 per-crop histogram matching |
+| `keep_common_3views.py` | 3 context view에 공통인 crop만 유지 |
+| `fixup_planet.py` | `_height_minmax.json` 생성, height_DAM3 미러 |
+| `run_clean_sweep.py` | 3 ctx config 자동 sweep (0010/0006/0005를 third로) |
+| `run_clean_sweep_histmatch.py` | 위 + 2 histmatch mode × 3 ctx = 6 run sweep |
+| `build_3dgs_ply.py`, `polish_3dgs_ply.py` | 표준 3DGS PLY 추출 (SuperSplat 호환) |
+| `compose_lotte_wide.py`, `compose_all5.py` | 5-view target 좌표계에 256 patch render 재배치 |
+| `render_3d_better.py` | 통합 point cloud의 정적 3D 시각화 + plotly HTML |
+
+## 추론 프로토콜
+
+3-config sweep, ctx 슬롯 0/1 고정 (0012/0018), 슬롯 2만 변동 (0010/0006/0005):
+
+```bash
+python scripts/run_clean_sweep.py            # baseline
+python scripts/run_clean_sweep_histmatch.py  # 색공간 보정 2 mode
+```
+
+각 run의 출력:
+```
+outputs/run_<TS>_ctx_0012-0018-<third>[_suffix]/
+├── cam_<id>/{gt.png, render.png, depth.png}   # 5개 카메라
+├── full.ply                                    # 표준 3DGS PLY
+└── heights.json                                # role + camera/gaussian max height
+```
+
+## 데이터
+
+- Planet TIF 원본: `Dataset/` (push 제외, 외부 보관)
+- 체크포인트: `checkpoints/SkySplat_baseline.ckpt` (push 제외)
+- 추론 결과: `outputs/` (push 제외)
+
+---
+
 # SkySplat: Generalizable 3D Gaussian Splatting from Multi-Temporal Sparse Satellite Images
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue)

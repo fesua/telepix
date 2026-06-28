@@ -21,17 +21,17 @@ rmext = lambda x: x[0:x.rfind(".")]
 
 try:
     from icecream import ic
+    ic.disable()
 except ImportError:
     def ic(*args):
         return args[0] if len(args) == 1 else args
-ic.disable()
 
 
 # Fixed examples. The default behavior samples
 # three available views randomly for each tile. Use --view-mode fixed if you
 # want the legacy triplets instead.
 DEFAULT_FIXED_VIEW_IDS = {
-    "JAX": ["RGB_001", "RGB_002", "RGB_003"],
+    "JAX": ["RGB_001", "RGB_002", "RGB_003", "RGB_004", "RGB_005"],
     "OMA": ["RGB_001", "RGB_002", "RGB_003"],
     "ATL": ["RGB_001", "RGB_002", "RGB_003"],
 }
@@ -74,12 +74,47 @@ def build_rpc170_model_from_meta(rpc_dict):
 
 
 def project_center(height_off, rpc_model, center_points):
-    lat, lon = rpc_model.RPC_PHOTO2OBJ(
-        [float(center_points[0])],
-        [float(center_points[1])],
-        [float(height_off)],
-    )
-    return lat, lon
+    """Polynomial inverse seed + Gauss-Newton refinement on forward RPC.
+
+    Polynomial-only inverse is unreliable at image corners for Planet-style RPC
+    normalization (SAMP_OFF=image_center, SAMP_SCALE=image_half_width) — corner
+    pixels (0, 0) sit at normalized (-1, -1) of the polynomial validity region.
+    Newton iteration on the forward RPC fixes this; JAX-style RPCs (SAMP_OFF outside image)
+    converge in 1 step anyway.
+    """
+    target_samp = float(center_points[0])
+    target_line = float(center_points[1])
+    h = float(height_off)
+
+    lat0, lon0 = rpc_model.RPC_PHOTO2OBJ([target_samp], [target_line], [h])
+    lat = float(np.asarray(lat0).reshape(-1)[0])
+    lon = float(np.asarray(lon0).reshape(-1)[0])
+    if not (np.isfinite(lat) and np.isfinite(lon)):
+        lat = float(rpc_model.LAT_OFF)
+        lon = float(rpc_model.LONG_OFF)
+
+    eps = 1e-7
+    for _ in range(20):
+        s0, l0 = rpc_model.RPC_OBJ2PHOTO(np.array([lat]), np.array([lon]), np.array([h]))
+        s0 = float(np.asarray(s0).reshape(-1)[0])
+        l0 = float(np.asarray(l0).reshape(-1)[0])
+        ds, dl = target_samp - s0, target_line - l0
+        if abs(ds) < 1e-4 and abs(dl) < 1e-4:
+            break
+        s_lat, l_lat = rpc_model.RPC_OBJ2PHOTO(np.array([lat + eps]), np.array([lon]), np.array([h]))
+        s_lon, l_lon = rpc_model.RPC_OBJ2PHOTO(np.array([lat]), np.array([lon + eps]), np.array([h]))
+        s_lat = float(np.asarray(s_lat).reshape(-1)[0]); l_lat = float(np.asarray(l_lat).reshape(-1)[0])
+        s_lon = float(np.asarray(s_lon).reshape(-1)[0]); l_lon = float(np.asarray(l_lon).reshape(-1)[0])
+        J = np.array([[(s_lat - s0) / eps, (s_lon - s0) / eps],
+                      [(l_lat - l0) / eps, (l_lon - l0) / eps]])
+        try:
+            delta = np.linalg.solve(J, np.array([ds, dl]))
+        except np.linalg.LinAlgError:
+            break
+        lat += float(delta[0])
+        lon += float(delta[1])
+
+    return np.array([lat]), np.array([lon])
 
 
 def crop_img(img, min_col, min_row, max_col, max_row):
@@ -192,7 +227,7 @@ def rpc_to_cameras(latlonalt_bbx, item, out_folder, out_others_folder, img_size,
         float(np.min(latlonalt_bbx["alt_minmax"])),
         use_srtm4=use_srtm4,
     )
-    latlonalt_bbx["alt_minmax"] = [altitude - 10, 300]
+    latlonalt_bbx["alt_minmax"] = [min(altitude - 10, 20.0), 700.0]
     ic("altitude range: ", latlonalt_bbx["alt_minmax"])
 
     with open(os.path.join(out_others_folder, f"{item}_latlonalt_bbx.json"), "w") as fp:
@@ -304,8 +339,8 @@ def save_cropped_view(view, bounds, flag_block, pinhole_size, latlonalt_bbx, use
 
 
 def crop_everything(pinhole_size, views, crop_size=256, run_sfm=False, use_srtm4=True):
-    if len(views) != 3:
-        raise ValueError(f"Expected exactly 3 views, got {len(views)}.")
+    if len(views) < 3:
+        raise ValueError(f"Expected at least 3 views, got {len(views)}.")
 
     ref_view = views[0]
     height_off = ref_view.rpc_model.HEIGHT_OFF
@@ -321,11 +356,7 @@ def crop_everything(pinhole_size, views, crop_size=256, run_sfm=False, use_srtm4
             center_x = j * crop_size + crop_size // 2
             center_y = i * crop_size + crop_size // 2
 
-            lat, lon = ref_view.rpc_model.RPC_PHOTO2OBJ(
-                [float(center_x)],
-                [float(center_y)],
-                [float(height_off)],
-            )
+            lat, lon = project_center(float(height_off), ref_view.rpc_model, [center_x, center_y])
             lon0 = float(np.asarray(lon).reshape(-1)[0])
             lat0 = float(np.asarray(lat).reshape(-1)[0])
             height_off = resolve_height_off(lon0, lat0, float(height_off), use_srtm4=use_srtm4)
@@ -380,15 +411,34 @@ def crop_everything(pinhole_size, views, crop_size=256, run_sfm=False, use_srtm4
                 "alt_minmax": [50, 300],
             }
 
+            # Try each view independently. A failure on one view shouldn't poison the others —
+            # the keep-common-crops step later will decide which combinations are usable.
             for view, bounds in zip(views, bounds_by_view):
-                save_cropped_view(
-                    view,
-                    bounds,
-                    flag_block,
-                    pinhole_size,
-                    latlonalt_bbx.copy(),
-                    use_srtm4=use_srtm4,
-                )
+                try:
+                    save_cropped_view(
+                        view,
+                        bounds,
+                        flag_block,
+                        pinhole_size,
+                        latlonalt_bbx.copy(),
+                        use_srtm4=use_srtm4,
+                    )
+                except (IndexError, AssertionError, ValueError) as exc:
+                    # Clean partial files only for this failing view.
+                    stem = Path(view.image_path).name.replace(".tif", f"_crop_{flag_block}")
+                    for d, ext in [
+                        (view.out_image_dir, ".tif"),
+                        (view.out_height_dir, ".tif"),
+                        (view.out_rpc_dir, "_170.rpc"),
+                        (view.out_camera_dir, ".json"),
+                        (view.out_camera_extra_dir, ".json"),
+                        (view.out_camera_extra_dir, "_latlonalt_bbx.json"),
+                        (view.out_camera_extra_dir, "_enu_observer_latlonalt.json"),
+                    ]:
+                        p = os.path.join(d, stem + ext)
+                        if os.path.exists(p):
+                            os.remove(p)
+                    print(f"  crop {flag_block}: skip view {view.view_slot}: {type(exc).__name__}: {exc}")
 
             if run_sfm:
                 run_sfm_for_crop(views, flag_block)

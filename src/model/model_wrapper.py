@@ -173,9 +173,47 @@ class ModelWrapper(LightningModule):
 
         # Save images.
         if self.test_cfg.save_image:
-            for index, color in zip(batch["context"]['ref_filename'], render_rgb):
-                index_name = index[0].split("/0/")[-1].split(".tif")[0]
-                save_image(color, path / scene / f"color/{index_name:0>6}.png")
+            # Name each rendered target view by its target filename so we can save all v_target
+            # renders (not just min(v_context, v_target) as the old zip-based loop did).
+            target_fns = batch["target"]['ref_filename'] if 'ref_filename' in batch["target"] else None
+            for t_idx in range(render_rgb.shape[0]):
+                if target_fns is not None and t_idx < len(target_fns):
+                    tname = target_fns[t_idx][0] if isinstance(target_fns[t_idx], (list, tuple)) else target_fns[t_idx]
+                    stem = Path(str(tname)).stem  # e.g. JAX_Tile_999_RGB_004_crop_16
+                else:
+                    stem = f"target{t_idx}"
+                save_image(render_rgb[t_idx], path / scene / f"color/tgt_view_{t_idx}_{stem}.png")
+
+            # Save per-context-view height maps as colormapped PNGs (predicted absolute altitude in meters).
+            from ..visualization.vis_depth import viz_depth_tensor
+            crop_stem = batch["context"]['ref_filename'][0][0].split("/0/")[-1].split(".tif")[0]
+            crop_stem_safe = Path(crop_stem).name  # JAX_Tile_999_RGB_001_crop_<id>
+            for v_idx in range(pred_height.shape[1]):
+                h_map = pred_height[0, v_idx].detach().cpu()  # (h, w) altitude in m
+                hmin = float(h_map.min().item())
+                hmax = float(h_map.max().item())
+                # plasma colormap on the height range (clamp to a sensible Seoul window)
+                disp = (h_map - hmin) / max(hmax - hmin, 1e-6)
+                colored = viz_depth_tensor(disp, return_numpy=True)  # (h, w, 3) uint8
+                from PIL import Image
+                out = path / scene / f"height/ctx_view_{v_idx}_{crop_stem_safe.replace('_001_', f'_00{v_idx+1}_')}.png"
+                out.parent.mkdir(parents=True, exist_ok=True)
+                Image.fromarray(colored).save(out)
+                # Also save the raw height grid as .npy (per-pixel meters) for downstream analysis
+                np.save(str(out).replace(".png", ".npy"), h_map.numpy())
+                # Per-crop height-min/max sidecar so a stitcher can use a consistent colormap
+                with open(str(out).replace(".png", ".json"), "w") as fp:
+                    json.dump({"min_height_m": hmin, "max_height_m": hmax}, fp)
+
+            # Export raw Gaussian tensors as .npz (debugging) + simple XYZ+RGB PLY (point cloud).
+            self._save_points_ply(
+                gaussians,
+                out_path=path / scene / f"gaussians/{crop_stem_safe}.ply",
+            )
+            self._save_gaussians_npz(
+                gaussians,
+                out_path=path / scene / f"gaussians/{crop_stem_safe}.npz",
+            )
 
         # compute scores
         if self.test_cfg.compute_scores:
@@ -242,6 +280,75 @@ class ModelWrapper(LightningModule):
                 self.test_cfg.output_path / name / "peak_memory.json"
             )
             self.benchmarker.summarize()
+
+    def _save_points_ply(self, gaussians, out_path):
+        """Export Gaussian means + DC-color as a simple XYZRGB binary PLY.
+        Skips low-opacity Gaussians so the cloud isn't dominated by transparent splats.
+        Viewable in MeshLab, CloudCompare, Blender, ParaView, etc."""
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Reshape everything to (N, ...) regardless of leading dims.
+        means = gaussians.means.detach().cpu().float().numpy().reshape(-1, 3)
+        opac = gaussians.opacities.detach().cpu().float().numpy().reshape(-1)
+        # harmonics has shape (..., 3, d_sh); pull DC band → (N, 3)
+        sh = gaussians.harmonics.detach().cpu().float().numpy()
+        sh = sh.reshape(-1, sh.shape[-2], sh.shape[-1])  # (N_chunks_x_per_view, 3, d_sh)
+        dc = sh[..., 0]                                  # (N_chunks_x_per_view, 3)
+        # If N (means) != N (sh), broadcast/tile to align — they should match in practice.
+        if dc.shape[0] != means.shape[0]:
+            # tile DC if it's one DC per source pixel and means has more entries (e.g. per gaussian-per-pixel)
+            n_per = means.shape[0] // dc.shape[0]
+            if n_per * dc.shape[0] == means.shape[0] and n_per >= 1:
+                dc = np.repeat(dc, n_per, axis=0)
+            else:
+                # fallback: gray
+                dc = np.full((means.shape[0], 3), 0.5, dtype=np.float32)
+
+        # 3DGS DC band → linear RGB via sigmoid-like; spherical harmonics DC: c = 0.5 + sh_0 * 0.28209
+        SH_DC = 0.28209479177387814
+        rgb_lin = np.clip(0.5 + dc * SH_DC, 0.0, 1.0)
+        rgb_u8 = (rgb_lin * 255).astype(np.uint8)
+
+        # Filter low-opacity gaussians
+        mask = opac > 0.01
+        if mask.sum() == 0:
+            mask = np.ones_like(mask, dtype=bool)
+        means = means[mask]
+        rgb_u8 = rgb_u8[mask]
+        N = means.shape[0]
+
+        header = (
+            "ply\n"
+            "format binary_little_endian 1.0\n"
+            f"element vertex {N}\n"
+            "property float x\nproperty float y\nproperty float z\n"
+            "property uchar red\nproperty uchar green\nproperty uchar blue\n"
+            "end_header\n"
+        ).encode("ascii")
+        # Pack as a structured array
+        dtype = np.dtype([("x", "<f4"), ("y", "<f4"), ("z", "<f4"),
+                          ("r", "u1"), ("g", "u1"), ("b", "u1")])
+        rec = np.zeros(N, dtype=dtype)
+        rec["x"] = means[:, 0]; rec["y"] = means[:, 1]; rec["z"] = means[:, 2]
+        rec["r"] = rgb_u8[:, 0]; rec["g"] = rgb_u8[:, 1]; rec["b"] = rgb_u8[:, 2]
+        with open(out_path, "wb") as fp:
+            fp.write(header)
+            fp.write(rec.tobytes())
+
+    def _save_gaussians_npz(self, gaussians, out_path):
+        """Dump every Gaussian tensor verbatim so a downstream script can construct
+        the 3DGS-format PLY without re-running inference."""
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        to_np = lambda t: t.detach().cpu().float().numpy()
+        np.savez(out_path,
+                 means=to_np(gaussians.means),
+                 scales=to_np(gaussians.scales),
+                 rotations=to_np(gaussians.rotations),
+                 opacities=to_np(gaussians.opacities),
+                 harmonics=to_np(gaussians.harmonics),
+                 hei=to_np(gaussians.hei))
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=self.optimizer_cfg.lr)
